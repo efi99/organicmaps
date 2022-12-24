@@ -587,9 +587,9 @@ UNIT_TEST(NoTurnOnForkingRoad2_TurnTest)
       integration::GetVehicleComponents(VehicleType::Pedestrian),
       mercator::FromLatLon(55.68336, 37.49492), {0.0, 0.0}, mercator::FromLatLon(55.68488, 37.49789));
 
+  TEST_EQUAL(routeResult.second, RouterResultCode::NoError, ());
+  TEST(routeResult.first, ());
   Route const & route = *routeResult.first;
-  RouterResultCode const result = routeResult.second;
-  TEST_EQUAL(result, RouterResultCode::NoError, ());
 
   integration::TestRouteLength(route, 300.0);
 
@@ -605,8 +605,46 @@ UNIT_TEST(NoTurnOnForkingRoad2_TurnTest)
 
 UNIT_TEST(Hungary_UseFootways)
 {
+  /// @todo Doesn't work with the new hiking speed model.
   integration::CalculateRouteAndTestRouteLength(
       integration::GetVehicleComponents(VehicleType::Pedestrian),
       mercator::FromLatLon(45.8587043, 18.2863972), {0., 0.},
       mercator::FromLatLon(45.858625, 18.285348), 95.7657, 0.02 /* relativeError */);
+}
+
+UNIT_TEST(France_UphillDownlhill)
+{
+  using namespace integration;
+  using mercator::FromLatLon;
+
+  double timeDownhill, timeUphill;
+  {
+    TRouteResult const routeResult = CalculateRoute(GetVehicleComponents(VehicleType::Pedestrian),
+        FromLatLon(45.32111, 3.69535), {0., 0.},
+        FromLatLon(45.235327, 3.857533));
+
+    TEST_EQUAL(routeResult.second, RouterResultCode::NoError, ());
+    TEST(routeResult.first, ());
+    Route const & route = *routeResult.first;
+
+    TestRouteLength(route, 20947.5);
+    timeDownhill = route.GetTotalTimeSec();
+    TEST_GREATER(timeDownhill, 4 * 3600, ());
+  }
+
+  {
+    TRouteResult const routeResult = CalculateRoute(GetVehicleComponents(VehicleType::Pedestrian),
+        FromLatLon(45.235327, 3.857533), {0., 0.},
+        FromLatLon(45.32111, 3.69535));
+
+    TEST_EQUAL(routeResult.second, RouterResultCode::NoError, ());
+    TEST(routeResult.first, ());
+    Route const & route = *routeResult.first;
+
+    TestRouteLength(route, 20947.5);
+    timeUphill = route.GetTotalTimeSec();
+    TEST_GREATER(timeUphill, 4 * 3600, ());
+  }
+
+  TEST_GREATER(timeUphill - timeDownhill, 1000, ());
 }
